@@ -31,7 +31,7 @@ class Summary(Base):
     summary_text = Column(Text)
     decisions = Column(JSON)
     todos = Column(JSON)
-    next_agenda = Column(Text)
+    next_agenda = Column(JSON)
     created_at = Column(DateTime, default=utcnow)
 
 class Job(Base):

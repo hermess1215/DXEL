@@ -1,36 +1,14 @@
 import styled from '@emotion/styled'
+import MeetingCardList from '../components/MeetingCardList'
+import SideBar from '../components/SideBar'
+
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const Container = styled.div`
     width: 100%;
     height: 100vh;
     display: flex;
-`
-
-const Aside = styled.aside`
-    width: 236px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 22px 16px;
-    background-color: #FBFAF7;
-    border: solid  1px #E9E5DD;
-`
-
-const NewButton = styled.button`
-    width: 203.3px;
-    height: 45px;
-    padding: 11px 66px;
-    background-color: #0F766E;
-    border: none;
-    border-radius: 9px;
-    color: white;
-    font-size: 15px;
-    font-weight: 600;
-    box-shadow: inset 0 1px 2px rgba(15, 118, 110, 0.35);
-    cursor: pointer;
-    line-height: normal;
 `
 
 const ConferenceBox = styled.div`
@@ -169,26 +147,72 @@ const ClearButton = styled.button`
     }
 `
 
+const CountRow = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+`
+
 const Count = styled.p`
     color: #7C766A;
     font-size: 13.5px;
     font-weight: 400;
+    display: inline;
+`
+
+const Number = styled.p`
+    color: #1C1B18;
+    font-weight: 600;
+    font-size: 13.5px;
 `
 
 function HomePage() {
     const [activeTab, setActiveTab] = useState('title')
     const [keyword, setKeyword] = useState('')
+    const navigate = useNavigate()
 
     const handleClear = () => {
         setKeyword('')
     }
 
+    const meetings = [
+        {
+            id: 1,
+            title: '제품 주간 회의 — 6월 4주차',
+            status: 'processing',
+            progress: 64
+        },
+        {
+            id: 2,
+            title: '결제 장애 대응 회의',
+            status: 'done',
+            date: '2026. 6. 19. 금',
+            duration: '41분',
+            attendeeCount: 5,
+            snippet: { timestamp: '00:12:47', before: '결제 모듈 ', keyword: '핫픽스', after: ' 를 금요일까지 배포하기로...' }
+        },
+        {
+            id: 3,
+            title: '분기 로드맵 킥오프',
+            status: 'done',
+            isCleaned: true,
+            date: '2026. 6. 12. 금',
+            duration: '1시간 8분',
+            attendeeCount: 6,
+            snippet: { timestamp: '00:34:02', before: '지난 ', keyword: '핫픽스', after: ' 이후 재발은 없었습니다...' }
+        }
+    ]
+
+    const handleCardClick = (meeting) => {
+        if (meeting.status !== 'processing') {
+            navigate(`/meetings/${meeting.id}`)
+        }
+    }
+
     return (
         <>
             <Container>
-                <Aside>
-                    <NewButton>+ 새 회의</NewButton>
-                </Aside>
+                <SideBar />
                 <Main>
                     <Alarm>
                         <ConferenceTitle>제품 주간 회의 — 6월 4주차</ConferenceTitle>
@@ -235,6 +259,14 @@ function HomePage() {
                                 )}
                             </SearchBox>
                         </SearchRow>
+                        <CountRow>
+                            <Count>전사 내용에서</Count>
+                            <Number>'핫픽스' 3건</Number>
+                        </CountRow>
+                        <MeetingCardList
+                            meetings={meetings}
+                            onCardClick={handleCardClick}
+                        />
                     </ListSearch>
                 </Main>
             </Container>
