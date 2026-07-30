@@ -1,8 +1,10 @@
 import styled from '@emotion/styled'
 import { X, Upload, Mic, AlertTriangle, Hourglass, Check } from 'lucide-react'
 import ProgressBar from './ProgressBar'
-
+import { uploadFile } from '../services/meetingApi'
+import { useJobPolling } from '../hooks/useJobPolling'
 import { useState } from 'react'
+
 
 const Overlay = styled.div`
     position: fixed;
@@ -227,33 +229,74 @@ const HiddenInput = styled.input`
     display: none;
 `
 
-function UploadBox({ onClose }) {
+function UploadBox({ onClose, onUploadComplete }) {
     const [file, setFile] = useState(null)
-    const [steps] = useState({
-        upload: 100,
-        transcribe: 40,
-        clean: 0,
-        summarize: 0
-    })
+    const [jobId, setJobId] = useState(null)
+    const [uploadError, setUploadError] = useState(null)
 
-    const handleFileSelect = (e) => {
+    const jobStatus = useJobPolling(jobId)
+
+    const handleFileSelect = async (e) => {
         const selected = e.target.files[0]
-        if (selected) setFile(selected)
+        if (selected){
+            setFile(selected)
+            await startUpload(selected)
+        }
     }
 
-    const handleDrop = (e) => {
+    const handleDrop = async (e) => {
         e.preventDefault()
         const dropped = e.dataTransfer.files[0]
-        if (dropped) setFile(dropped)
+        if (dropped) {
+            setFile(dropped)
+            await startUpload(dropped)
+        }
     }
 
-    const getStepState = (percent) => {
-        if (percent === 100) return 'done'
-        if (percent > 0) return 'active'
+    const startUpload = async (selectedFile) => {
+        try {
+            setUploadError(null)
+            const result = await uploadFile(selectedFile)
+            setJobId(result.job_id)
+        } catch {
+            setUploadError('파일 업로드에 실패했습니다.')
+        }
+    }
+
+    const getStepState = (step) => {
+        if(!jobStatus) return 'pending'
+
+        const stepOrder = ['transcribing', 'summarizing', 'saving', 'completed']
+        const currentIndex = stepOrder.indexOf(jobStatus.current_step)
+        const thisIndex = stepOrder.indexOf(step)
+
+        if(jobStatus.status === 'done') return 'done'
+        if(thisIndex < currentIndex) return 'done'
+        if(thisIndex === currentIndex) return 'active'
+        
         return 'pending'
     }
 
     const formatSize = (bytes) => (bytes / 1024 / 1024).toFixed(1)
+
+    const isProgressing = jobStatus && jobStatus.status !== 'done' && jobStatus.status !== 'failed'
+    const isDone = jobStatus && jobStatus.status === 'done'
+
+    const handleGoToBackground = async () => {
+        if(onUploadComplete) {
+            await onUploadComplete()
+        }
+        
+        onClose()
+    }
+
+    const handleFinish = async () => {
+        if(onUploadComplete) {
+            await onUploadComplete()
+        }
+
+        onClose()
+    }
 
     return (
         <Overlay onClick={onClose}>
@@ -278,7 +321,7 @@ function UploadBox({ onClose }) {
                         <HiddenInput
                             id="uploadFileInput"
                             type="file"
-                            accept="audio/*"
+                            accept="audio/*,video/*"
                             onChange={handleFileSelect}
                         />
                     </Drag>
@@ -290,56 +333,87 @@ function UploadBox({ onClose }) {
                             </FileIconBack>
                             <div>
                                 <FileName>{file.name}</FileName>
-                                <FileMeta>{formatSize(file.size)} MB · 약 1시간 12분</FileMeta>
+                                <FileMeta>{formatSize(file.size)} MB</FileMeta>
                             </div>
                         </FileInfo>
 
-                        <Warning>
-                            <AlertTriangle size={17} />
-                            같은 파일이 이미 있어요 — 중복일 수 있습니다
-                            <WarningLink>선택</WarningLink>
-                        </Warning>
+                        {uploadError && (
+                            <Warning>
+                                <AlertTriangle size={17} />
+                                {uploadError}
+                            </Warning>
+                        )}
 
-                        <StepList>
-                            <StepRow>
-                                <StepIcon $state={getStepState(steps.upload)}>
-                                    {steps.upload === 100 && <Check size={15} />}
-                                </StepIcon>
-                                <StepLabel $active={steps.upload > 0}>업로드</StepLabel>
-                                <ProgressBar percent={steps.upload} />
-                                <StepPercent>{steps.upload}%</StepPercent>
-                            </StepRow>
+                        {jobStatus && jobStatus.status === 'failed' && (
+                            <Warning>
+                                <AlertTriangle size={17} />
+                                처리 중 오류가 발생했습니다: {jobStatus.error_message}
+                            </Warning>
+                        )}
 
-                            <StepRow>
-                                <StepIcon $state={getStepState(steps.transcribe)} />
-                                <StepLabel $active={steps.transcribe > 0}>전사</StepLabel>
-                                <ProgressBar percent={steps.transcribe} />
-                                <StepPercent>{steps.transcribe}%</StepPercent>
-                            </StepRow>
+                        {jobStatus && (
+                            <StepList>
+                                <StepRow>
+                                    <StepIcon $state={getStepState('transcribing')}>
+                                        {getStepState('transcribing') === 'done' && <Check size={15} />}
+                                    </StepIcon>
+                                    <StepLabel $active={getStepState('transcribing') !== 'pending'}>전사</StepLabel>
+                                    <ProgressBar percent={
+                                        getStepState('transcribing') === 'done' ? 100 :
+                                        getStepState('transcribing') === 'active' ? jobStatus.progress : 0
+                                    } />
+                                    <StepPercent>
+                                        {getStepState('transcribing') === 'done' ? 100 :
+                                         getStepState('transcribing') === 'active' ? jobStatus.progress : 0}%
+                                    </StepPercent>
+                                </StepRow>
 
-                            <StepRow>
-                                <StepIcon $state={getStepState(steps.clean)} />
-                                <StepLabel $active={steps.clean > 0}>문장 정리 (선택)</StepLabel>
-                                <ProgressBar percent={steps.clean} />
-                                <StepPercent>{steps.clean}%</StepPercent>
-                            </StepRow>
+                                <StepRow>
+                                    <StepIcon $state={getStepState('summarizing')}>
+                                        {getStepState('summarizing') === 'done' && <Check size={15} />}
+                                    </StepIcon>
+                                    <StepLabel $active={getStepState('summarizing') !== 'pending'}>요약·추출</StepLabel>
+                                    <ProgressBar percent={
+                                        getStepState('summarizing') === 'done' ? 100 :
+                                        getStepState('summarizing') === 'active' ? jobStatus.progress : 0
+                                    } />
+                                    <StepPercent>
+                                        {getStepState('summarizing') === 'done' ? 100 :
+                                         getStepState('summarizing') === 'active' ? jobStatus.progress : 0}%
+                                    </StepPercent>
+                                </StepRow>
 
-                            <StepRow>
-                                <StepIcon $state={getStepState(steps.summarize)} />
-                                <StepLabel $active={steps.summarize > 0}>요약·추출</StepLabel>
-                                <ProgressBar percent={steps.summarize} />
-                                <StepPercent>{steps.summarize}%</StepPercent>
-                            </StepRow>
-                        </StepList>
+                                <StepRow>
+                                    <StepIcon $state={getStepState('saving')}>
+                                        {getStepState('saving') === 'done' && <Check size={15} />}
+                                    </StepIcon>
+                                    <StepLabel $active={getStepState('saving') !== 'pending'}>저장</StepLabel>
+                                    <ProgressBar percent={
+                                        getStepState('saving') === 'done' ? 100 :
+                                        getStepState('saving') === 'active' ? jobStatus.progress : 0
+                                    } />
+                                    <StepPercent>
+                                        {getStepState('saving') === 'done' ? 100 :
+                                         getStepState('saving') === 'active' ? jobStatus.progress : 0}%
+                                    </StepPercent>
+                                </StepRow>
+                            </StepList>
+                        )}
 
-                        <NoticeBox>
-                            <Hourglass size={16} />
-                            처리에 시간이 걸려요. 다른 화면을 봐도 백그라운드에서 계속됩니다.
-                        </NoticeBox>
+                        {isProgressing && (
+                            <NoticeBox>
+                                <Hourglass size={16} />
+                                처리에 시간이 걸려요. 다른 화면을 봐도 백그라운드에서 계속됩니다.
+                            </NoticeBox>
+                        )}
 
                         <ButtonBox>
                             <CancelButton onClick={onClose}>취소</CancelButton>
-                            <BackgroundButton onClick={onClose}>백그라운드로</BackgroundButton>
+                            {isDone ? (
+                                <BackgroundButton onClick={handleFinish}>완료</BackgroundButton>
+                            ) : (
+                                <BackgroundButton onClick={handleGoToBackground}>백그라운드로</BackgroundButton>
+                            )}
                         </ButtonBox>
                     </>
                 )}

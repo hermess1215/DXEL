@@ -1,14 +1,15 @@
 import styled from '@emotion/styled'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, Download, Pencil } from 'lucide-react'
 
 import SideBar from '../components/SideBar'
 import SummaryCard from '../components/SummaryCard'
 import DecisionList from '../components/DecisionList'
 import TodoList from '../components/TodoList'
-import TranscriptViewer from '../components/TranscriptViewer'
 import NextAgenda from '../components/NextAgenda'
+import TranscriptViewer from '../components/TranscriptViewer'
+import { fetchMeetingDetail } from '../services/meetingApi'
 
 const Container = styled.div`
     width: 100%;
@@ -123,44 +124,74 @@ const LeftColumn = styled.div`
     gap: 26px;
 `
 
-const meetingData = {
-    title: '제품 주간 회의 — 6월 4주차',
-    date: '2026. 6. 23. 월 14:00 · 1시간 12분',
-    attendees: [
-        { initial: '김', name: '김민수' },
-        { initial: '이', name: '이서연' },
-        { initial: '박', name: '박준호' }
-    ],
-    summary: '이번 주는 결제 모듈 장애 대응 경과와 다음 분기 로드맵 우선순위를 논의했다. 핫픽스 배포 일정과 온보딩 개선 실험 범위를 정리했고, 일부 항목은 다음 스프린트로 이월하기로 했다.',
-    decisions: [
-        { id: 1, text: '결제 모듈 핫픽스를 <strong>금요일(6/27)까지</strong> 배포한다.' },
-        { id: 2, text: '온보딩 A/B 테스트는 다음 스프린트로 연기한다.' }
-    ],
-    todos: [
-        { id: 1, task: '결제 로그 분석 및 원인 보고', assignee: '김민수', due: '6/26' },
-        { id: 2, task: '온보딩 카피 초안 작성', assignee: '이서연', due: '6/30' },
-        { id: 3, task: '로드맵 우선순위 문서 정리', assignee: null, due: null }
-    ],
-    nextAgenda: ['분기 로드맵 최종 확정', '고객 인터뷰 일정 조율'],
-    segments: [
-        { time: '00:00:12', text: '네, 지난주 결제 장애부터 보겠습니다. 로그상으로는 결제 모듈 타임아웃이 원인으로 보입니다.' },
-        { time: '00:11:58', text: '그럼 핫픽스 일정은 언제로 잡을까요?' },
-        { time: '00:12:47', text: '결제 모듈 핫픽스를 이번 주 금요일까지 배포하는 걸로 하시죠.' },
-        { time: '00:13:20', text: '좋습니다. 로그 분석은 김민수 님이 26일까지 정리해 주세요.' },
-        { time: '00:21:05', text: '온보딩 실험은 이번 스프린트엔 무리일 것 같아요.' }
-    ]
+const LoadingText = styled.p`
+    padding: 40px;
+    text-align: center;
+    color: #928C80;
+    font-size: 14px;
+`
+
+function formatTime(seconds) {
+    const hour = Math.floor(seconds / 3600)
+    const minute = Math.floor((seconds % 3600) / 60)
+    const second = Math.floor(seconds % 60)
+
+    const pad = (n) => String(n).padStart(2, '0')
+
+    return `${pad(hour)}:${pad(minute)}:${pad(second)}`
 }
 
 function MeetingDetailPage() {
     const navigate = useNavigate()
+    const { id } = useParams()
+
+    const [meeting, setMeeting] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
     const [checkedIds, setCheckedIds] = useState([])
     const [viewType, setViewType] = useState('cleaned')
 
-    const handleToggle = (id) => {
+    useEffect(() => {
+        const loadMeeting = async () => {
+            try {
+                setIsLoading(true)
+                const data = await fetchMeetingDetail(id)
+                setMeeting(data)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        loadMeeting()
+    }, [id])
+
+    const handleToggle = (todoId) => {
         setCheckedIds(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+            prev.includes(todoId) ? prev.filter(x => x !== todoId) : [...prev, todoId]
         )
     }
+
+    if (isLoading) {
+        return (
+            <Container>
+                <SideBar />
+                <Main>
+                    <LoadingText>회의를 찾을 수 없습니다.</LoadingText>
+                </Main>
+            </Container>
+        )
+    }
+
+    const todos = (meeting.summary?.todos || []).map((todo, index) => ({
+        id: index,
+        task: todo.task,
+        assignee: todo.assignee,
+        due: todo.due
+    }))
+
+    const segments = (meeting.transcript?.segments || []).map(seg => ({
+        time: formatTime(seg.start),
+        text: seg.text
+    }))
 
     return (
         <Container>
@@ -176,39 +207,44 @@ function MeetingDetailPage() {
                 </TopBar>
 
                 <TitleRow>
-                    <MeetingTitle>{meetingData.title}</MeetingTitle>
+                    <MeetingTitle>{meeting.title}</MeetingTitle>
                     <Pencil size={16} color="#928C80" style={{ cursor: 'pointer' }} />
                 </TitleRow>
 
                 <MetaRow>
-                    <span>{meetingData.date}</span>
-                    <span>참석자</span>
-                    {meetingData.attendees.map((a, i) => (
-                        <AttendeeChip key={i}>
-                            <ChipAvatar>{a.initial}</ChipAvatar>
-                            {a.name}
-                        </AttendeeChip>
-                    ))}
-                    <AttendeeChip style={{ paddingLeft: 11 }}>+ 입력</AttendeeChip>
+                    <span>{new Date(meeting.created_at).toLocaleString('ko-kr')}</span>
                 </MetaRow>
 
                 <Body>
                     <LeftColumn>
-                        <SummaryCard summary={meetingData.summary} />
-                        <DecisionList decisions={meetingData.decisions} />
-                        <TodoList
-                            todos={meetingData.todos}
-                            checkedIds={checkedIds}
-                            onToggle={handleToggle}
-                        />
-                        <NextAgenda items={meetingData.nextAgenda} />
+                        {meeting.summary && (
+                            <SummaryCard summary={meeting.summary.summary_text} />
+                        )}
+
+                        {meeting.summary?.decisions?.length > 0 && (
+                            <DecisionList decisions={meeting.summary.decisions.map((text, index) => ({
+                                id: index,
+                                text
+                            }))} />
+                        )}
+
+                        {todos.length > 0 && (
+                            <TodoList
+                                todos={todos}
+                                checkedIds={checkedIds}
+                                onToggle={handleToggle}
+                            />
+                        )}
+
+                        {meeting.summary?.next_agenda?.length > 0 && (
+                            <NextAgenda items={meeting.summary.next_agenda} />
+                        )}
                     </LeftColumn>
 
                     <TranscriptViewer
-                        segments={meetingData.segments}
+                        segments={segments}
                         viewType={viewType}
                         onViewTypeChange={setViewType}
-                        highlightTime="00:12:47"
                     />
                 </Body>
             </Main>

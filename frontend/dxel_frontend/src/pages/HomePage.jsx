@@ -2,8 +2,9 @@ import styled from '@emotion/styled'
 import MeetingCardList from '../components/MeetingCardList'
 import SideBar from '../components/SideBar'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { fetchMeetingList } from '../services/meetingApi'
 
 const Container = styled.div`
     width: 100%;
@@ -169,39 +170,27 @@ const Number = styled.p`
 function HomePage() {
     const [activeTab, setActiveTab] = useState('title')
     const [keyword, setKeyword] = useState('')
+    const [meetings, setMeetings] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
     const navigate = useNavigate()
 
     const handleClear = () => {
         setKeyword('')
     }
 
-    const meetings = [
-        {
-            id: 1,
-            title: '제품 주간 회의 — 6월 4주차',
-            status: 'processing',
-            progress: 64
-        },
-        {
-            id: 2,
-            title: '결제 장애 대응 회의',
-            status: 'done',
-            date: '2026. 6. 19. 금',
-            duration: '41분',
-            attendeeCount: 5,
-            snippet: { timestamp: '00:12:47', before: '결제 모듈 ', keyword: '핫픽스', after: ' 를 금요일까지 배포하기로...' }
-        },
-        {
-            id: 3,
-            title: '분기 로드맵 킥오프',
-            status: 'done',
-            isCleaned: true,
-            date: '2026. 6. 12. 금',
-            duration: '1시간 8분',
-            attendeeCount: 6,
-            snippet: { timestamp: '00:34:02', before: '지난 ', keyword: '핫픽스', after: ' 이후 재발은 없었습니다...' }
+    const loadMeetings = async () => {
+        try{
+            setIsLoading(true)
+            const data = await fetchMeetingList()
+            setMeetings(data)
+        } finally {
+            setIsLoading(false)
         }
-    ]
+    }
+
+    useEffect(() => {
+        loadMeetings()
+    }, [])
 
     const handleCardClick = (meeting) => {
         if (meeting.status !== 'processing') {
@@ -212,7 +201,7 @@ function HomePage() {
     return (
         <>
             <Container>
-                <SideBar />
+                <SideBar onUploadComplete={ loadMeetings } />
                 <Main>
                     <Alarm>
                         <ConferenceTitle>제품 주간 회의 — 6월 4주차</ConferenceTitle>

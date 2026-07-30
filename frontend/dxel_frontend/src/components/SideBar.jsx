@@ -29,7 +29,7 @@ const NewButton = styled.button`
     line-height: normal;
 `
 
-function SideBar() {
+function SideBar({ onUploadComplete }) {
     const [showUploadBox, setShowUploadBox] = useState(false)
 
     return (
@@ -37,7 +37,7 @@ function SideBar() {
             <NewButton onClick={() => setShowUploadBox(true)}>+ 새 회의</NewButton>
 
             {showUploadBox && (
-                <UploadBox onClose={() => setShowUploadBox(false)} />
+                <UploadBox onClose={() => setShowUploadBox(false)} onUploadComplete={onUploadComplete} />
             )}
         </Aside>
     )
