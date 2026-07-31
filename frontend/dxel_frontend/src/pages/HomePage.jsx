@@ -179,18 +179,59 @@ function HomePage() {
     }
 
     const loadMeetings = async () => {
-        try{
+        try {
             setIsLoading(true)
-            const data = await fetchMeetingList()
-            setMeetings(data)
+            const data = await fetchMeetingList(keyword, activeTab)
+
+            const formatted = data.map(m => ({
+                id: m.id,
+                title: m.title,
+                status: m.status,
+                progress: m.progress,
+                date: formatDate(m.created_at),
+                duration: formatDuration(m.duration),
+                attendeeCount: m.attendee_count,
+                snippet: m.snippet
+            }))
+
+            setMeetings(formatted)
         } finally {
             setIsLoading(false)
         }
     }
 
+    function formatDate(isoString) {
+        const d = new Date(isoString)
+        const days = ['일', '월', '화', '수', '목', '금', '토']
+        return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${days[d.getDay()]}`
+    }
+
+    function formatDuration(seconds) {
+        if(!seconds)
+            return '-'
+
+        const minutes = Math.round(seconds / 60)
+
+        if (minutes < 60)
+            return `${minutes}분`
+
+        const hour = Math.floor(minutes / 60)
+        const minute = minutes % 60
+        
+        return minute > 0 ? `${hour}시간 ${minute}분` : `${hour}시간`
+    }
+
     useEffect(() => {
         loadMeetings()
-    }, [])
+    }, [keyword, activeTab])
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            loadMeetings()
+        }, 2000)
+
+        return () => clearInterval(interval)
+    }, [keyword, activeTab])
 
     const handleCardClick = (meeting) => {
         if (meeting.status !== 'processing') {
@@ -201,7 +242,7 @@ function HomePage() {
     return (
         <>
             <Container>
-                <SideBar onUploadComplete={ loadMeetings } />
+                <SideBar onUploadComplete={loadMeetings} />
                 <Main>
                     <Alarm>
                         <ConferenceTitle>제품 주간 회의 — 6월 4주차</ConferenceTitle>
@@ -235,7 +276,7 @@ function HomePage() {
                                     type="text"
                                     value={keyword}
                                     onChange={(e) => setKeyword(e.target.value)}
-                                    placeholder="제목 또는 날짜로 검색"
+                                    placeholder={activeTab === 'title' ? '제목 또는 날짜로 검색' : '전사 내용으로 검색'}
                                 />
 
                                 {keyword && (
@@ -248,10 +289,12 @@ function HomePage() {
                                 )}
                             </SearchBox>
                         </SearchRow>
-                        <CountRow>
-                            <Count>전사 내용에서</Count>
-                            <Number>'핫픽스' 3건</Number>
+                        {keyword && (
+                            <CountRow>
+                            <Count>{activeTab === 'title' ? '제목·날짜에서' : '전사 내용에서'}</Count>
+                            <Number>'{keyword}' {meetings.length}건</Number>
                         </CountRow>
+                        )}
                         <MeetingCardList
                             meetings={meetings}
                             onCardClick={handleCardClick}

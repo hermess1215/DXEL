@@ -140,7 +140,7 @@ function MeetingCard({ meeting, onClick }) {
                     <Mic size={20} color={IconColor(isProgressing ? 'processing' : 'done')} strokeWidth={1.42} />
                 </IconBackground>
                 <CardTitle>{meeting.title}</CardTitle>
-                {isProgressing && <Badge $type="processing">● 처리 중</Badge>}
+                {isProgressing && <Badge $type="processing">• 처리 중</Badge>}
                 {!isProgressing && <Badge $type="done">완료</Badge>}
                 {meeting.isCleaned && <Badge $type="cleaned">정리본</Badge>}
                 {!isProgressing && <ChevronIcon>›</ChevronIcon>}

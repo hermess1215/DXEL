@@ -1,7 +1,7 @@
 import styled from '@emotion/styled'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Download, Pencil } from 'lucide-react'
+import { Calendar, ChevronLeft, Download, Pencil } from 'lucide-react'
 
 import SideBar from '../components/SideBar'
 import SummaryCard from '../components/SummaryCard'
@@ -9,7 +9,7 @@ import DecisionList from '../components/DecisionList'
 import TodoList from '../components/TodoList'
 import NextAgenda from '../components/NextAgenda'
 import TranscriptViewer from '../components/TranscriptViewer'
-import { fetchMeetingDetail } from '../services/meetingApi'
+import { exportUrl, fetchMeetingDetail, updateParticipants } from '../services/meetingApi'
 
 const Container = styled.div`
     width: 100%;
@@ -78,7 +78,7 @@ const MeetingTitle = styled.h1`
 const MetaRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
     padding: 12px 28px 20px;
     font-size: 13.5px;
     color: #7C766A;
@@ -87,28 +87,90 @@ const MetaRow = styled.div`
     border-bottom: 1px solid #EBE7DF;
 `
 
+const DateText = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+`
+
+const ParticipantsLabel = styled.span`
+    color: #7C766A;
+`
+
 const AttendeeChip = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 3px 11px 3px 3px;
-    background-color: #F0EFE9;
+    padding: 3px 11px;
+    background-color: #FFFFFF;
     border-radius: 20px;
     font-size: 13px;
-    color: #4A473F;
+    color: #1C1B18;
+    border: 1px solid #E4E0D7;
 `
 
-const ChipAvatar = styled.span`
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background-color: #DCD9CF;
+const AddChip = styled.button`
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: #57534A;
+    gap: 4px;
+    padding: 4px 11px;
+    background-color: transparent;
+    border: 1px dashed #C9C3B5;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #928C80;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans KR', 'IBM Plex Mono', sans-serif;
+`
+
+const ParticipantsEditRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+`
+
+const ParticipantsInput = styled.input`
+    flex: 1;
+    max-width: 320px;
+    padding: 7px 12px;
+    border: 1px solid #DDD8CD;
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+    font-family: 'IBM Plex Sans KR', 'IBM Plex Mono', sans-serif;
+
+    &:focus {
+        border-color: #0F766E;
+    }
+`
+
+const SaveButton = styled.button`
+    padding: 7px 14px;
+    border: none;
+    border-radius: 8px;
+    background-color: #0F766E;
+    color: white;
+    font-size: 13px;
     font-weight: 600;
+    cursor: pointer;
+`
+
+const CancelSmallButton = styled.button`
+    padding: 7px 14px;
+    border: 1px solid #DDD8CD;
+    border-radius: 8px;
+    background-color: white;
+    color: #57534A;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+`
+
+const Span = styled.span`
+    display: flex;
+    gap: 7px;
+    align-items: center;
 `
 
 const Body = styled.div`
@@ -149,6 +211,8 @@ function MeetingDetailPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [checkedIds, setCheckedIds] = useState([])
     const [viewType, setViewType] = useState('cleaned')
+    const [isEditingParticipants, setIsEditingParticipants] = useState(false)
+    const [participantsInput, setParticipantsInput] = useState('')
 
     useEffect(() => {
         const loadMeeting = async () => {
@@ -175,6 +239,17 @@ function MeetingDetailPage() {
             <Container>
                 <SideBar />
                 <Main>
+                    <LoadingText>불러오는 중</LoadingText>
+                </Main>
+            </Container>
+        )
+    }
+
+    if (!meeting) {
+        return (
+            <Container>
+                <SideBar />
+                <Main>
                     <LoadingText>회의를 찾을 수 없습니다.</LoadingText>
                 </Main>
             </Container>
@@ -193,6 +268,32 @@ function MeetingDetailPage() {
         text: seg.text
     }))
 
+    const handleParticipants = async () => {
+        if (!participantsInput.trim()) {
+            setIsEditingParticipants(false)
+            return
+        }
+
+        try {
+            const existing = (meeting.participants || '').split(',').filter(Boolean)
+            const newNames = participantsInput.split(',').map(n => n.trim()).filter(Boolean)
+            const combined = [...existing, ...newNames].join(',')
+
+            const result = await updateParticipants(meeting.id, combined)
+            setMeeting(prev => ({ ...prev, participants: result.participants }))
+            setParticipantsInput('')
+            setIsEditingParticipants(false)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const handleStartEditing = () => {
+        setParticipantsInput('')
+        setIsEditingParticipants(true)
+    }
+
+
     return (
         <Container>
             <SideBar />
@@ -201,7 +302,7 @@ function MeetingDetailPage() {
                     <BackButton onClick={() => navigate('/')}>
                         <ChevronLeft size={17} /> 회의 목록
                     </BackButton>
-                    <DownloadButton>
+                    <DownloadButton onClick={() => window.open(exportUrl(meeting.id))}>
                         <Download size={16} /> 워드(.docx) 다운로드
                     </DownloadButton>
                 </TopBar>
@@ -212,7 +313,34 @@ function MeetingDetailPage() {
                 </TitleRow>
 
                 <MetaRow>
-                    <span>{new Date(meeting.created_at).toLocaleString('ko-kr')}</span>
+                    <DateText>
+                        <Calendar size={14} />
+                        {new Date(meeting.created_at).toLocaleString('ko-kr')}
+                    </DateText>
+                    <Span>
+                        <ParticipantsLabel>참석자</ParticipantsLabel>
+                        {!isEditingParticipants ? (
+                            <>
+                                {(meeting.participants || '').split(',').filter(Boolean).map((name, index) => (
+                                    <AttendeeChip key={index}>
+                                        {name.trim()}
+                                    </AttendeeChip>
+                                ))}
+                                <AddChip onClick={handleStartEditing}>+ 입력</AddChip>
+                            </>
+                        ) : (
+                            <ParticipantsEditRow>
+                                <ParticipantsInput
+                                    value={participantsInput}
+                                    onChange={(e) => setParticipantsInput(e.target.value)}
+                                    placeholder="이름을 쉼표로 구분해서 입력 (예: 김민수,이서연)"
+                                    autoFocus
+                                />
+                                <SaveButton onClick={handleParticipants}>저장</SaveButton>
+                                <CancelSmallButton onClick={() => setIsEditingParticipants(false)}>취소</CancelSmallButton>
+                            </ParticipantsEditRow>
+                        )}
+                    </Span>
                 </MetaRow>
 
                 <Body>

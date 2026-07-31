@@ -30,4 +30,4 @@ def audio_transcription(file_path:str):
             "text": segment.text.strip()
         })
 
-    return result
+    return result, round(info.duration)

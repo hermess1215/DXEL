@@ -6,6 +6,7 @@ from db import models
 from api.upload import router as upload_router
 from api.job import router as job_router
 from api.meeting import router as meeting_router
+from api.export import router as export_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +22,7 @@ app.add_middleware(
 app.include_router(upload_router)
 app.include_router(job_router)
 app.include_router(meeting_router)
+app.include_router(export_router)
 
 @app.get("/")
 def read_root():

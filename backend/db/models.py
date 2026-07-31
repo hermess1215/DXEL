@@ -13,6 +13,8 @@ class Meeting(Base):
     participants = Column(String)
     meeting_date = Column(DateTime)
     created_at = Column(DateTime, default=utcnow)
+    duration = Column(Integer, nullable=True)
+    file_hash = Column(String, nullable=True)
 
 class Transcript(Base):
     __tablename__ = "transcript"

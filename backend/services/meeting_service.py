@@ -26,3 +26,10 @@ def save(db: Session, meeting_id: int, segments: list, summary_data: dict):
     db.add(new_summary)
     
     db.commit()
+
+def update_duration(db: Session, meeting_id: int, duration: int):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+
+    if meeting:
+        meeting.duration = duration
+        db.commit()

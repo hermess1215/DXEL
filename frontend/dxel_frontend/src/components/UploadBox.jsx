@@ -193,8 +193,11 @@ const NoticeBox = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14.5px;
-    color: #7C766A;
+    font-size: 15.5px;
+    color: #57534A;
+    padding: 10px 13px;
+    background-color: #F3F1EA;
+    border-radius: 10px;
 `
 
 const ButtonBox = styled.div`
@@ -233,6 +236,7 @@ function UploadBox({ onClose, onUploadComplete }) {
     const [file, setFile] = useState(null)
     const [jobId, setJobId] = useState(null)
     const [uploadError, setUploadError] = useState(null)
+    const [duplicateInfo, setDuplicateInfo] = useState(null)
 
     const jobStatus = useJobPolling(jobId)
 
@@ -253,14 +257,25 @@ function UploadBox({ onClose, onUploadComplete }) {
         }
     }
 
-    const startUpload = async (selectedFile) => {
+    const startUpload = async (selectedFile, force = false) => {
         try {
             setUploadError(null)
-            const result = await uploadFile(selectedFile)
+            const result = await uploadFile(selectedFile, force)
+
+            if(result.duplicate) {
+                setDuplicateInfo(result)
+                return
+            }
+
+            setDuplicateInfo(null)
             setJobId(result.job_id)
         } catch {
             setUploadError('파일 업로드에 실패했습니다.')
         }
+    }
+
+    const handleForceUpload = () => {
+        startUpload(file, true)
     }
 
     const getStepState = (step) => {
@@ -351,6 +366,16 @@ function UploadBox({ onClose, onUploadComplete }) {
                             </Warning>
                         )}
 
+                        {
+                            duplicateInfo && (
+                                <Warning>
+                                    <AlertTriangle size={17} />
+                                    같은 파일이 이미 있어요 - 중복일 수 있습니다
+                                    <WarningLink onClick={handleForceUpload}>그래도 업로드</WarningLink>
+                                </Warning>
+                            )
+                        }
+
                         {jobStatus && (
                             <StepList>
                                 <StepRow>
@@ -403,12 +428,13 @@ function UploadBox({ onClose, onUploadComplete }) {
                         {isProgressing && (
                             <NoticeBox>
                                 <Hourglass size={16} />
-                                처리에 시간이 걸려요. 다른 화면을 봐도 백그라운드에서 계속됩니다.
+                                <span>
+                                    처리에 시간이 걸려요. <b>다른 화면을 봐도 백그라운드에서 계속</b>됩니다.
+                                </span>
                             </NoticeBox>
                         )}
 
                         <ButtonBox>
-                            <CancelButton onClick={onClose}>취소</CancelButton>
                             {isDone ? (
                                 <BackgroundButton onClick={handleFinish}>완료</BackgroundButton>
                             ) : (
