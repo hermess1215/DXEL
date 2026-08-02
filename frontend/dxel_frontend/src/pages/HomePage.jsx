@@ -239,16 +239,22 @@ function HomePage() {
         }
     }
 
+    const processingMeeting = meetings.find(m => m.status === 'processing')
+
     return (
         <>
             <Container>
                 <SideBar onUploadComplete={loadMeetings} />
                 <Main>
-                    <Alarm>
-                        <ConferenceTitle>제품 주간 회의 — 6월 4주차</ConferenceTitle>
-                        <Progress>전사 중·64%·약 12분 남음</Progress>
+
+                    {processingMeeting && (
+                        <Alarm>
+                        <ConferenceTitle>{processingMeeting.title}</ConferenceTitle>
+                        <Progress>전사 중 · {processingMeeting.progress}%</Progress>
                         <Background>백그라운드에서 계속 처리됩니다</Background>
                     </Alarm>
+                    )}
+
                     <ListSearch>
                         <Title>회의 목록</Title>
                         <SearchRow>

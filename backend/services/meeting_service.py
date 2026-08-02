@@ -8,11 +8,12 @@ def create_meeting(db: Session, title: str):
     db.refresh(new_meeting)
     return new_meeting
 
-def save(db: Session, meeting_id: int, segments: list, summary_data: dict):
+def save(db: Session, meeting_id: int, segments: list, summary_data: dict, cleaned_text = None):
     text = "\n".join([f"[{seg['start']}s] {seg['text']}" for seg in segments])
     new_transcript = Transcript(
         meeting_id = meeting_id,
-        raw_text = text
+        raw_text = text,
+        cleaned_text = cleaned_text
     )
     db.add(new_transcript)
 

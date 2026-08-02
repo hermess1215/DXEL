@@ -5,12 +5,15 @@ import { useState } from 'react'
 
 const Panel = styled.div`
     width: 340px;
+    height: 100vh;
     flex-shrink: 0;
     border-left: 1px solid #EBE7DF;
     padding: 18px 22px 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: sticky;
+    top: 0;
 `
 
 const PanelHeader = styled.div`
@@ -76,6 +79,7 @@ const SegmentList = styled.div`
     flex-direction: column;
     gap: 15px;
     overflow-y: auto;
+    flex: 1;
 `
 
 const Segment = styled.div`
@@ -101,7 +105,18 @@ const Text = styled.p`
     color: #3A362E;
 `
 
-function TranscriptViewer({ segments, viewType, onViewTypeChange, highlightTime, keyword }) {
+const CleanedTextBox = styled.div`
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #3A362E;
+    overflow-y: auto;
+    flex: 1;
+    white-space: pre-wrap;
+`
+
+function TranscriptViewer({ segments, viewType, onViewTypeChange, highlightTime, cleanedText }) {
+    const [keyword, setKeyword] = useState('')
+
     return (
         <Panel>
             <PanelHeader>
@@ -116,22 +131,26 @@ function TranscriptViewer({ segments, viewType, onViewTypeChange, highlightTime,
                     <ToggleButton
                         $active={viewType === 'cleaned'}
                         onClick={() => onViewTypeChange('cleaned')}
+                        disabled={!cleanedText}
                     >
                         정리본
                     </ToggleButton>
                 </Toggle>
             </PanelHeader>
 
-            <SearchBox>
-                <Search size={15} />
-                <SearchInput
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="전사문 안에서 검색"
-                />
-            </SearchBox>
+            {viewType === 'raw' && (
+                <SearchBox>
+                    <Search size={15} />
+                    <SearchInput
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        placeholder="전사문 안에서 검색"
+                    />
+                </SearchBox>
+            )}
 
-            <SegmentList>
+            {viewType === 'raw' ? (
+                <SegmentList>
                 {segments.map((seg, i) => {
                     const isHighlighted = seg.time === highlightTime
                     return (
@@ -142,6 +161,12 @@ function TranscriptViewer({ segments, viewType, onViewTypeChange, highlightTime,
                     )
                 })}
             </SegmentList>
+            ) : (
+                <CleanedTextBox>
+                    {cleanedText || '정리본이 아직 준비되지 않았습니다.'}
+                </CleanedTextBox>
+            )}
+
         </Panel>
     )
 }

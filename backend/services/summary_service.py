@@ -1,7 +1,7 @@
 import json
 import re
 from ai.qwen_model import generate_response
-from ai.prompts import summary_prompt
+from ai.prompts import summary_prompt, cleaned_summary_prompt
 
 def extract(transcript_text:str):
     prompt = summary_prompt(transcript_text)
@@ -40,3 +40,9 @@ def clean_json_text(text:str):
     text = re.sub(r':\s*"null"', ': null', text)
 
     return text.strip()
+
+def clean_transcript(transcript: str) -> str:
+    prompt = cleaned_summary_prompt(transcript)
+    cleaned = generate_response(prompt)
+
+    return cleaned.strip()

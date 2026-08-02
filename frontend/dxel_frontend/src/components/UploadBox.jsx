@@ -242,7 +242,7 @@ function UploadBox({ onClose, onUploadComplete }) {
 
     const handleFileSelect = async (e) => {
         const selected = e.target.files[0]
-        if (selected){
+        if (selected) {
             setFile(selected)
             await startUpload(selected)
         }
@@ -262,7 +262,7 @@ function UploadBox({ onClose, onUploadComplete }) {
             setUploadError(null)
             const result = await uploadFile(selectedFile, force)
 
-            if(result.duplicate) {
+            if (result.duplicate) {
                 setDuplicateInfo(result)
                 return
             }
@@ -279,16 +279,16 @@ function UploadBox({ onClose, onUploadComplete }) {
     }
 
     const getStepState = (step) => {
-        if(!jobStatus) return 'pending'
+        if (!jobStatus) return 'pending'
 
-        const stepOrder = ['transcribing', 'summarizing', 'saving', 'completed']
+        const stepOrder = ['transcribing', 'cleaning', 'summarizing', 'saving', 'completed']
         const currentIndex = stepOrder.indexOf(jobStatus.current_step)
         const thisIndex = stepOrder.indexOf(step)
 
-        if(jobStatus.status === 'done') return 'done'
-        if(thisIndex < currentIndex) return 'done'
-        if(thisIndex === currentIndex) return 'active'
-        
+        if (jobStatus.status === 'done') return 'done'
+        if (thisIndex < currentIndex) return 'done'
+        if (thisIndex === currentIndex) return 'active'
+
         return 'pending'
     }
 
@@ -298,15 +298,15 @@ function UploadBox({ onClose, onUploadComplete }) {
     const isDone = jobStatus && jobStatus.status === 'done'
 
     const handleGoToBackground = async () => {
-        if(onUploadComplete) {
+        if (onUploadComplete) {
             await onUploadComplete()
         }
-        
+
         onClose()
     }
 
     const handleFinish = async () => {
-        if(onUploadComplete) {
+        if (onUploadComplete) {
             await onUploadComplete()
         }
 
@@ -385,11 +385,26 @@ function UploadBox({ onClose, onUploadComplete }) {
                                     <StepLabel $active={getStepState('transcribing') !== 'pending'}>전사</StepLabel>
                                     <ProgressBar percent={
                                         getStepState('transcribing') === 'done' ? 100 :
-                                        getStepState('transcribing') === 'active' ? jobStatus.progress : 0
+                                            getStepState('transcribing') === 'active' ? jobStatus.progress : 0
                                     } />
                                     <StepPercent>
                                         {getStepState('transcribing') === 'done' ? 100 :
-                                         getStepState('transcribing') === 'active' ? jobStatus.progress : 0}%
+                                            getStepState('transcribing') === 'active' ? jobStatus.progress : 0}%
+                                    </StepPercent>
+                                </StepRow>
+
+                                <StepRow>
+                                    <StepIcon $state={getStepState('cleaning')}>
+                                        {getStepState('cleaning') === 'done' && <Check size={15} />}
+                                    </StepIcon>
+                                    <StepLabel $active={getStepState('cleaning') !== 'pending'}>문장 정리</StepLabel>
+                                    <ProgressBar percent={
+                                        getStepState('cleaning') === 'done' ? 100 :
+                                            getStepState('cleaning') === 'active' ? jobStatus.progress : 0
+                                    } />
+                                    <StepPercent>
+                                        {getStepState('cleaning') === 'done' ? 100 :
+                                            getStepState('cleaning') === 'active' ? jobStatus.progress : 0}%
                                     </StepPercent>
                                 </StepRow>
 
@@ -400,11 +415,11 @@ function UploadBox({ onClose, onUploadComplete }) {
                                     <StepLabel $active={getStepState('summarizing') !== 'pending'}>요약·추출</StepLabel>
                                     <ProgressBar percent={
                                         getStepState('summarizing') === 'done' ? 100 :
-                                        getStepState('summarizing') === 'active' ? jobStatus.progress : 0
+                                            getStepState('summarizing') === 'active' ? jobStatus.progress : 0
                                     } />
                                     <StepPercent>
                                         {getStepState('summarizing') === 'done' ? 100 :
-                                         getStepState('summarizing') === 'active' ? jobStatus.progress : 0}%
+                                            getStepState('summarizing') === 'active' ? jobStatus.progress : 0}%
                                     </StepPercent>
                                 </StepRow>
 
@@ -415,11 +430,11 @@ function UploadBox({ onClose, onUploadComplete }) {
                                     <StepLabel $active={getStepState('saving') !== 'pending'}>저장</StepLabel>
                                     <ProgressBar percent={
                                         getStepState('saving') === 'done' ? 100 :
-                                        getStepState('saving') === 'active' ? jobStatus.progress : 0
+                                            getStepState('saving') === 'active' ? jobStatus.progress : 0
                                     } />
                                     <StepPercent>
                                         {getStepState('saving') === 'done' ? 100 :
-                                         getStepState('saving') === 'active' ? jobStatus.progress : 0}%
+                                            getStepState('saving') === 'active' ? jobStatus.progress : 0}%
                                     </StepPercent>
                                 </StepRow>
                             </StepList>

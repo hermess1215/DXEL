@@ -293,6 +293,7 @@ function MeetingDetailPage() {
         setIsEditingParticipants(true)
     }
 
+    const cleanedText = meeting.transcript?.cleaned_text || null
 
     return (
         <Container>
@@ -371,6 +372,7 @@ function MeetingDetailPage() {
 
                     <TranscriptViewer
                         segments={segments}
+                        cleanedText={cleanedText}
                         viewType={viewType}
                         onViewTypeChange={setViewType}
                     />

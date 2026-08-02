@@ -83,7 +83,8 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
         "participants": meeting.participants,
         "created_at": meeting.created_at,
         "transcript": {
-            "segments": parse_segments(transcript.raw_text) if transcript else []
+            "segments": parse_segments(transcript.raw_text) if transcript else [],
+            "cleaned_text": transcript.cleaned_text if transcript else None
         },
         "summary": {
             "summary_text": summary.summary_text if summary else None,

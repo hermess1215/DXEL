@@ -4,7 +4,7 @@ import os
 from sqlalchemy.orm import Session
 
 from ai.whisper_model import audio_transcription
-from services.summary_service import extract
+from services.summary_service import extract, clean_transcript
 from services.meeting_service import create_meeting, save, update_duration
 from services.job_service import create_job, update_job
 from utils.audio import calculate_hash
@@ -59,11 +59,14 @@ def process_meeting(job_id: int, meeting_id: int, file_path: str):
         update_duration(db, meeting_id, duration)
         full_text = " ".join([seg["text"] for seg in segments])
 
+        update_job(db, job_id, current_step="cleaning", progress=40)
+        cleaned_text = clean_transcript(full_text)
+
         update_job(db, job_id, current_step="summarizing", progress=60)
         summary_result = extract(full_text)
 
         update_job(db, job_id, current_step="saving", progress=90)
-        save(db, meeting_id, segments, summary_result)
+        save(db, meeting_id, segments, summary_result, cleaned_text)
 
         update_job(db, job_id, status="done", current_step="completed", progress=100)
 
