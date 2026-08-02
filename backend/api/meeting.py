@@ -16,7 +16,20 @@ def get_meeting_list(keyword: str=None, search_type: str="title", db: Session = 
     query = db.query(Meeting)
 
     if keyword and search_type == "title":
-        query = query.filter(Meeting.title.contains(keyword))
+        from sqlalchemy import or_, func
+
+        if keyword.startswith("'") and keyword.endswith("'") and len(keyword) >= 2:
+            date_keyword = keyword[1:-1]
+
+            query = query.filter(
+                or_(
+                    func.strftime('%Y-%m-%d', Meeting.created_at).contains(date_keyword),
+                    func.strftime('%Y.%m.%d', Meeting.created_at).contains(date_keyword)
+                )
+            )
+
+        else:
+            query = query.filter(Meeting.title.contains(keyword))
 
     meetings = query.order_by(Meeting.created_at.desc()).all()
 
