@@ -18,7 +18,7 @@ def get_meeting_list(keyword: str=None, search_type: str="title", db: Session = 
     if keyword and search_type == "title":
         query = query.filter(Meeting.title.contains(keyword))
 
-    meetings = db.query(Meeting).order_by(Meeting.created_at.desc()).all()
+    meetings = query.order_by(Meeting.created_at.desc()).all()
 
     result = []
 
