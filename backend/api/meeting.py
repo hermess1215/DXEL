@@ -42,7 +42,7 @@ def get_meeting_list(keyword: str=None, search_type: str="title", db: Session = 
         result.append({
             "id": meeting.id,
             "title": meeting.title,
-            "created_at": meeting.created_at,
+            "created_at": meeting.created_at.isoformat() + "Z" if meeting.created_at else None,
             "duration": meeting.duration,
             "attendee_count": attendee_count,
             "status": latest.status if latest else "unknown",
@@ -81,7 +81,7 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db)):
         "id": meeting.id,
         "title": meeting.title,
         "participants": meeting.participants,
-        "created_at": meeting.created_at,
+        "created_at": meeting.created_at.isoformat() + "Z" if meeting.created_at else None,
         "transcript": {
             "segments": parse_segments(transcript.raw_text) if transcript else [],
             "cleaned_text": transcript.cleaned_text if transcript else None

@@ -237,6 +237,7 @@ function UploadBox({ onClose, onUploadComplete }) {
     const [jobId, setJobId] = useState(null)
     const [uploadError, setUploadError] = useState(null)
     const [duplicateInfo, setDuplicateInfo] = useState(null)
+    const [fileBlob, setFileBlob] = useState(null)
 
     const jobStatus = useJobPolling(jobId)
 
@@ -244,6 +245,8 @@ function UploadBox({ onClose, onUploadComplete }) {
         const selected = e.target.files[0]
         if (selected) {
             setFile(selected)
+            const buffer = await selected.arrayBuffer()
+            setFileBlob({ buffer, name: selected.name, type: selected.type })
             await startUpload(selected)
         }
     }
@@ -253,6 +256,8 @@ function UploadBox({ onClose, onUploadComplete }) {
         const dropped = e.dataTransfer.files[0]
         if (dropped) {
             setFile(dropped)
+            const buffer = await dropped.arrayBuffer()
+            setFileBlob({ buffer, name: dropped.name, type: dropped.type })
             await startUpload(dropped)
         }
     }
@@ -275,7 +280,10 @@ function UploadBox({ onClose, onUploadComplete }) {
     }
 
     const handleForceUpload = () => {
-        startUpload(file, true)
+        if(fileBlob) {
+            const rebuiltFile = new File([fileBlob.buffer], fileBlob.name, { type: fileBlob.type })
+            startUpload(rebuiltFile, true)
+        }
     }
 
     const getStepState = (step) => {

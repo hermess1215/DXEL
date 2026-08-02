@@ -29,11 +29,15 @@ export async function updateParticipants(meetingId, participants) {
     return response.json()
 }
 
-export async function uploadFile(file) {
+export async function uploadFile(file, force=false) {
     const formData = new FormData()
-    formData.append('file', file)
 
-    const response = await fetch(`${BASE_URL}/upload`, {
+    const freshFile = new File([file], file.name, { type: file.type })
+    formData.append('file', freshFile)
+
+    const url = force ? `${BASE_URL}/upload?force=true` : `${BASE_URL}/upload`
+
+    const response = await fetch(url, {
         method: 'POST',
         body: formData
     })
