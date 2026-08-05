@@ -60,7 +60,11 @@ def process_meeting(job_id: int, meeting_id: int, file_path: str):
         full_text = " ".join([seg["text"] for seg in segments])
 
         update_job(db, job_id, current_step="cleaning", progress=40)
-        cleaned_text = clean_transcript(full_text)
+        try:
+            cleaned_text = clean_transcript(full_text)
+        except Exception as clean_error:
+            print(f"정리본 생성 실패 (건너뜀): {clean_error}")
+            cleaned_text = None
 
         update_job(db, job_id, current_step="summarizing", progress=60)
         summary_result = extract(full_text)

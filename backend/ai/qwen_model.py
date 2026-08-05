@@ -8,7 +8,7 @@ def load_model():
     if _model is None:
         _model = Llama(
             model_path="../models/qwen3-4b/Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf",
-            n_ctx=8192,
+            n_ctx=32768,
             n_threads=8,
             verbose=False
         )

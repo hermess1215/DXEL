@@ -6,9 +6,9 @@ def load_model():
     global _model
     if _model is None:
         _model = WhisperModel(
-            "../models/faster-whisper-medium",
+            "../models/faster-whisper-large-v2",
             device="cpu",
-            compute_type="int8"
+            compute_type="float32"
         )
     return _model
 
@@ -19,7 +19,8 @@ def audio_transcription(file_path:str):
         file_path,
         language="ko",
         vad_filter=True,
-        beam_size=5
+        beam_size=15,
+        vad_parameters=dict(threshold=0.25)
     )
 
     result = []
