@@ -19,8 +19,9 @@ def audio_transcription(file_path:str):
         file_path,
         language="ko",
         vad_filter=True,
-        beam_size=15,
-        vad_parameters=dict(threshold=0.25)
+        beam_size=20,
+        vad_parameters=dict(threshold=0.257),
+        initial_prompt="이것은 회의 녹음입니다. 정확한 맞춤법과 띄어쓰기로 전사해주세요. 날짜 표현을 정확하게 인식해주세요."
     )
 
     result = []

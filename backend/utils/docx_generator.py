@@ -41,7 +41,7 @@ def generate_docx(meeting_data: dict, output_path: str):
                 row_cells = table.add_row().cells
                 row_cells[0].text = todo.get("task", "")
                 row_cells[1].text = todo.get("assignee") or "미지정"
-                row_cells[2].text = todo.get("due") or "-"
+                row_cells[2].text = todo.get("due") or "미지정"
 
         next_agenda = summary.get("next_agenda", [])
 
